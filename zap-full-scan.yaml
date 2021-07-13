@@ -1,0 +1,27 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: zap-full-scan
+spec:
+  description: >-
+    This task performs full scan of a URL with zap.
+  params:
+  - name: URL
+    description: URL to scan
+    type: string
+  - name: report-type
+    description: name of the report
+    type: string
+    default: "-r"
+  - name: report-name
+    description: name of the report
+    type: string
+  - name: owasp-zap-for-openshift
+    description: zap image
+    type: string
+    default: "image-registry.openshift-image-registry.svc:5000/poc-epa4pkv-new/owasp-zap-for-openshift"
+  steps:
+  - name: zap-scan
+    image: "$(params.owasp-zap-for-openshift)"
+    command: [zap-full-scan.py]
+    args: ["-t", "$(params.URL)", "$(params.report-type)", "$(params.report-name)"]

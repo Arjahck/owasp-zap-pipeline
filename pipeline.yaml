@@ -1,0 +1,86 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: s2i-go-pipeline
+spec:
+  params:
+    - name: IMAGE
+      description: Location of the repo where image has to be pushed
+      type: string
+    - name: deployment-name
+      type: string
+      description: name of the deployment
+    - name: URL
+      description: URL to scan
+      type: string
+    - name: report-type
+      description: name of the report
+      type: string
+    - name: report-name
+      description: name of the report
+      type: string
+    - name: owasp-zap-for-openshift
+      description: zap image
+      type: string
+  workspaces:
+    - name: shared-workspace
+  tasks:
+    - name: fetch-repository
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+      params:
+        - name: url
+          value: https://github.com/sclorg/golang-ex
+        - name: subdirectory
+          value: ""
+        - name: deleteExisting
+          value: "true"
+    - name: s2i
+      taskRef:
+        name: s2i-go
+        kind: ClusterTask
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+      params:
+        - name: IMAGE
+          value: $(params.IMAGE)
+      runAfter: fetch-repository 
+    - name: apply-manifests
+      taskRef:
+        name: apply-manifests
+      workspaces:
+      - name: source
+        workspace: shared-workspace
+      runAfter:
+      - s2i
+    - name: deploy
+      description: task to deploy the s2i
+      taskRef:
+        name: deploy
+      params:
+      - name: deployment
+        value: $(params.deployment-name)
+      - name: IMAGE
+        value: $(params.IMAGE)
+      runAfter:
+      - apply-manifests
+    - name: zap-full-scan
+      descript: task to scan URL of the deployed pod
+      taskRef:
+        name: zap-full-scan
+      params:
+      - name: URL
+        value: $(params.URL)
+      - name: report-type
+        value: $(params.report-type)
+      - name: report-name
+        value: $(params.report-name)
+      - name: owasp-zap-for-openshift
+        value: $(params.owasp-zap-for-openshift)
+      runAfter:
+      - deploy

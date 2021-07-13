@@ -1,0 +1,31 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: s2i-go-pipeline-run
+spec:
+  # Use service account with git and image repo credentials
+  serviceAccountName: pipeline
+  pipelineRef:
+    name: s2i-go-pipeline
+  params:
+  - name: IMAGE
+    value: image-registry.openshift-image-registry.svc:5000/hello-world-project-build/s2i-go-app
+  - name: deployment-name
+    value: hello-world
+  - name: URL
+    value: ""
+  - name: report-type
+    value: -r
+  - name: report-name
+    value: hello-world-report-html
+  - name: owasp-zap-for-openshift
+    value: image-registry.openshift-image-registry.svc:5000/poc-epa4pkv-new/owasp-zap-for-openshift
+  workspaces:
+  - name: shared-workspace
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 500Mi
